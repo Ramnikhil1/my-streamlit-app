@@ -1,11 +1,24 @@
-
 import joblib
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import streamlit as st
+import requests
 
-# Load the model and data
+# Function to fetch data from an API
+@st.cache_data
+def fetch_data_from_api(api_url, headers=None):
+    try:
+        response = requests.get(api_url, headers=headers)
+        response.raise_for_status()  # Raise an error for bad status codes
+        return response.json()  # Parse and return JSON response
+    except requests.exceptions.HTTPError as http_err:
+        st.error(f"HTTP error occurred: {http_err}")
+    except Exception as err:
+        st.error(f"An error occurred: {err}")
+        return None
+
+# Load the model
 filename = 'final_model.joblib'
 try:
     loaded_model = joblib.load(filename)
@@ -13,7 +26,19 @@ except FileNotFoundError:
     st.error("Model file not found. Ensure 'final_model.joblib' exists.")
     st.stop()
 
-df = pd.read_csv("Clustered_Customer_Data.csv")
+# Load or fetch the data
+api_url = "https://api.example.com/customer-data"  # Replace with your API endpoint
+headers = {"Authorization": "Bearer YOUR_API_KEY"}  # Replace with your actual API key
+api_data = fetch_data_from_api(api_url, headers)
+
+if api_data:
+    df = pd.DataFrame(api_data)
+else:
+    try:
+        df = pd.read_csv("Clustered_Customer_Data.csv")
+    except FileNotFoundError:
+        st.error("Data file not found. Ensure 'Clustered_Customer_Data.csv' exists.")
+        st.stop()
 
 # Set up Streamlit app
 st.markdown('<style>body{background-color: Blue;}</style>', unsafe_allow_html=True)
